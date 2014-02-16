@@ -1,0 +1,97 @@
+private static function drawLight(sprite,obj,numLines,lrWidth,Y,lrHeight,checkNum) {
+			var points = getLightPoints(sprite,obj,numLines,lrWidth,Y,lrHeight,checkNum);
+			var g = sprite.graphics;
+			var startY = -(Y+20);
+            g.clear();
+            //g.beginFill(0x000000,1);
+            g.lineStyle(0,0x000000);
+            g.moveTo(0,startY);
+			for (var i = 0; i < points.length; i++) {
+				g.lineTo(points[i].x,points[i].y);
+			}
+			g.lineTo(lrWidth,startY);
+            g.lineTo(0,startY);
+            //g.endFill();
+		}
+		
+		public static function getLightPoints(sprite,obj,numLines,lrWidth,Y,lrHeight,checkNum) {
+            var checkNumMin = checkNum;
+            var checkNumMax = 175;
+			var startY = 900;
+			var skipY = 0;
+            var lineStep = lrWidth/numLines;
+            var checkStep = lrHeight/checkNum;
+			var skipJ = Math.round(skipY/checkStep);
+			var points = [];
+			var collidedPoints = [];
+			var limit = lrWidth, increment = lineStep;
+			var collidedPointsFound = false;
+			var cornerIndex;
+            for (var i = 0; i <= limit && !collidedPointsFound; i += increment) {
+                var hitX = i;
+                var hitY = -lrHeight + startY;
+                checkNum = checkNumMin; 
+                checkStep = lrHeight/checkNum;		
+                for (var j = skipJ; j <= checkNum; j++) {
+                    if (i >= 0) hitX = i;
+					else hitX = -i;
+                    hitY = -checkStep * j + startY;
+                    var hitPoint = sprite.localToGlobal(new Point(hitX,hitY));
+                    if (obj.hitTestPoint(hitPoint.x,hitPoint.y,true)) {
+                        if (checkNum < checkNumMax) { 
+                            j = Math.floor((j-1)*checkNumMax/checkNum); 
+                            checkNum = checkNumMax; 
+                            checkStep = lrHeight/checkNum; 
+                            
+                        } else {
+							collidedPoints.push(new Point(hitX,hitY));
+							if (collidedPoints.length == 4) { 
+								i = -limit; 
+								limit = 0;
+								cornerIndex = points.length+1; 
+							} else if (collidedPoints.length == 8) collidedPointsFound = true; 
+							break;
+						}
+                    }
+                }
+				points.push(new Point(hitX,hitY));
+            }
+			var rightSide = points.splice(cornerIndex,points.length-cornerIndex);
+			rightSide.reverse(); 
+			var corner;
+			if (collidedPoints.length == 8) corner = findCorner(collidedPoints,lrWidth);
+			if (corner) {
+				points.splice(cornerIndex,0,corner);
+				for (var k = 0; k < rightSide.length; k++) {
+					points.push(rightSide[k]);
+				}
+			} else {
+				if (rightSide.length >= 1) points.push(rightSide[rightSide.length-1]);
+			}
+			return points;
+        }
+		
+		private static function findCorner(points:Array,lrWidth) {
+			var leftPoints = points.slice(0,4);
+			var rightPoints = points.slice(4);
+			var leftAngle = -Math.atan2(((leftPoints[1].y - leftPoints[0].y)+
+										 (leftPoints[2].y - leftPoints[1].y)+
+										 (leftPoints[3].y - leftPoints[2].y))/3, 
+										((leftPoints[1].x - leftPoints[0].x)+
+										 (leftPoints[2].x - leftPoints[1].x)+
+										 (leftPoints[3].x - leftPoints[2].x))/3);
+			var rightAngle = -Math.atan2(((rightPoints[1].y - rightPoints[0].y)+
+										  (rightPoints[2].y - rightPoints[1].y)+
+										  (rightPoints[3].y - rightPoints[2].y))/3, 
+										 ((rightPoints[1].x - rightPoints[0].x)+
+										  (rightPoints[2].x - rightPoints[1].x)+
+										  (rightPoints[3].x - rightPoints[2].x))/3);
+			if (fuzzyEquals(leftAngle, Math.PI - rightAngle)) return;
+			else {
+				leftPoints[1].x += lrWidth * Math.cos(leftAngle);
+				leftPoints[1].y -= lrWidth * Math.sin(leftAngle);
+				rightPoints[1].x += lrWidth * Math.cos(rightAngle);
+				rightPoints[1].y -= lrWidth * Math.sin(rightAngle);
+				return checkLineIntersection(leftPoints,rightPoints,false);
+			}
+		}

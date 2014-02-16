@@ -1,0 +1,19 @@
+import com.greensock.plugins.HexColorsPlugin;
+	import com.greensock.TweenLite;
+	import com.greensock.plugins.TweenPlugin;
+	TweenPlugin.activate([HexColorsPlugin]);
+	import com.greensock.easing.*;
+	import flash.geom.Matrix;
+	import flash.display.*;
+
+var colors:Object = {left:0xB8E46F, right:0x0066CC};
+TweenMax.to(colors, 5, {hexColors:{left:0xff9900, right:0x663399}, onUpdate:drawGradient, ease:Back.easeInOut});
+var mySprite:Sprite = new Sprite();
+addChild(mySprite);
+drawGradient();
+function drawGradient():void {
+	var m:Matrix = new Matrix();
+	m.createGradientBox(220, 220, 0, 0, 0);
+	mySprite.graphics.beginGradientFill(GradientType.LINEAR, [colors.left, colors.right], [1, 1], [0x00, 0xFF], m, SpreadMethod.PAD);
+	mySprite.graphics.drawRect(0,0,220,220);
+}
